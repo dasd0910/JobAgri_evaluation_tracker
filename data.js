@@ -1,0 +1,112 @@
+/**
+ * JobAgri Evaluation Tracker - Refined Milestones Data
+ * Aligned with JobAgri 2026 Workplan & ILO i-eval Standards
+ */
+
+const PROJECT_DEADLINE = "2026-06-30";
+
+const MILESTONES = [
+    {
+        id: 1,
+        title: "ToR Development",
+        description: "Drafting the Evaluation Terms of Reference with the focal point, ensuring alignment with project objectives.",
+        owner: "PM & Focal Point",
+        startDate: "2026-03-04",
+        endDate: "2026-03-15",
+        status: "active",
+        notes: "Aligning with CIRAD's ongoing data analysis phase.",
+        subSteps: [
+            { id: 101, text: "Draft initial ToR objectives", completed: true },
+            { id: 102, text: "Review against ILO evaluation policy", completed: false },
+            { id: 103, text: "Technical sign-off from focal point", completed: false }
+        ]
+    },
+    {
+        id: 2,
+        title: "Evaluation Manager Appointment",
+        description: "Securing an internal manager to lead the independent evaluation process.",
+        owner: "Project Manager",
+        startDate: "2026-03-16",
+        endDate: "2026-03-25",
+        status: "pending",
+        notes: "Targeting staff with experience in agricultural evaluations.",
+        subSteps: [
+            { id: 201, text: "Identify prospective managers", completed: false },
+            { id: 202, text: "Official appointment & briefing", completed: false }
+        ]
+    },
+    {
+        id: 3,
+        title: "Evaluator Recruitment",
+        description: "Competitive sourcing of an external consultant to conduct the final evaluation.",
+        owner: "Evaluation Manager",
+        startDate: "2026-03-26",
+        endDate: "2026-04-15",
+        status: "pending",
+        notes: "Strict 3-week window for sourcing and contracting.",
+        subSteps: [
+            { id: 301, text: "Issue call for expressions of interest", completed: false },
+            { id: 302, text: "Technical & financial evaluation of bids", completed: false },
+            { id: 303, text: "Consultant onboarding", completed: false }
+        ]
+    },
+    {
+        id: 4,
+        title: "Inception & Planning",
+        description: "Evaluator prepares methodology and interview guides before Ghana field mission.",
+        owner: "Evaluator",
+        startDate: "2026-04-16",
+        endDate: "2026-04-21",
+        status: "pending",
+        notes: "Critical preparation for the Validation Workshop mission.",
+        subSteps: [
+            { id: 401, text: "Desk review of project documents", completed: false },
+            { id: 402, text: "Inception report approval", completed: false }
+        ]
+    },
+    {
+        id: 5,
+        title: "Ghana Mission & Data Validation",
+        description: "Field data collection in Ghana, synchronized with the Data Validation Workshop (22-24 April).",
+        owner: "Evaluator & PM",
+        startDate: "2026-04-22",
+        endDate: "2026-05-05",
+        status: "pending",
+        notes: "Field travel: Accra, Kumasi, and Techiman (Subnational Workshop).",
+        subSteps: [
+            { id: 501, text: "Participate in Data Validation Workshop", completed: false },
+            { id: 502, text: "Stakeholder interviews (CIRAD, MoFA)", completed: false },
+            { id: 503, text: "Subnational Validation Workshop (Techiman)", completed: false }
+        ]
+    },
+    {
+        id: 6,
+        title: "Analysis & Draft Validation",
+        description: "Drafting findings and validating with stakeholders during the NEP Review Workshop.",
+        owner: "Evaluator",
+        startDate: "2026-05-06",
+        endDate: "2026-06-10",
+        status: "pending",
+        notes: "Incorporating feedback from the May NEP Review Workshop.",
+        subSteps: [
+            { id: 601, text: "Data analysis & coding", completed: false },
+            { id: 602, text: "Present preliminary findings at NEP Workshop", completed: false },
+            { id: 603, text: "Submission of Draft 1", completed: false }
+        ]
+    },
+    {
+        id: 7,
+        title: "Final Review & Closeout",
+        description: "Finalizing the report for the National JobAgri Workshop and donor submission.",
+        owner: "PM & Manager",
+        startDate: "2026-06-11",
+        endDate: "2026-06-30",
+        status: "pending",
+        notes: "Report to be part of the National Workshop and Closeout Session.",
+        subSteps: [
+            { id: 701, text: "Consolidate stakeholder comments", completed: false },
+            { id: 702, text: "Final report approval", completed: false },
+            { id: 703, text: "Presentation at Closeout Session", completed: false }
+        ]
+    }
+];
