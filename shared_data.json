@@ -6,13 +6,13 @@
     "owner": "PM & Focal Point",
     "startDate": "2026-03-04",
     "endDate": "2026-03-15",
-    "status": "active",
+    "status": "pending",
     "notes": "Aligning with CIRAD's ongoing data analysis phase.",
     "subSteps": [
       {
         "id": 101,
         "text": "Draft initial ToR objectives",
-        "completed": true
+        "completed": false
       },
       {
         "id": 102,
@@ -33,7 +33,7 @@
     "owner": "Project Manager",
     "startDate": "2026-03-16",
     "endDate": "2026-03-25",
-    "status": "pending",
+    "status": "active",
     "notes": "- Needs to be found immediately. Targeting staff with experience in agricultural and data project evaluations. EM vv imp on the final report: If negative, then the EM can help the evaluation report. - Spoke to Mauricio. (04.03)- Marcelo declined due to unavailability for the given timeline (04.03)- Mauricio wrote to Aurelie (SOCPRO) and Sergio (04.03)- Sergio tentatively agreed. Mauricio will speak to him further. (05.03)- Speak to Naomi (out of office until 09.03.",
     "subSteps": [
       {
