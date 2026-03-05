@@ -34,12 +34,12 @@
     "startDate": "2026-03-16",
     "endDate": "2026-03-25",
     "status": "pending",
-    "notes": "",
+    "notes": "- Needs to be found immediately. Targeting staff with experience in agricultural and data project evaluations. EM vv imp on the final report: If negative, then the EM can help the evaluation report. - Spoke to Mauricio. (04.03)- Marcelo declined due to unavailability for the given timeline (04.03)- Mauricio wrote to Aurelie (SOCPRO) and Sergio (04.03)- Sergio tentatively agreed. Mauricio will speak to him further. (05.03)- Speak to Naomi (out of office until 09.03.",
     "subSteps": [
       {
         "id": 201,
         "text": "Identify prospective managers",
-        "completed": false
+        "completed": true
       },
       {
         "id": 202,
