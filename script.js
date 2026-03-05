@@ -4,29 +4,6 @@
 
 let currentIndex = 0;
 
-const init = () => {
-    updateCountdown();
-    renderTimelineDots();
-    renderGantt();
-    showMilestone(currentIndex);
-    updateProgress();
-
-    // Auto-detect current milestone based on today's date
-    const today = new Date();
-    const autoIndex = MILESTONES.findIndex(m => {
-        const start = new Date(m.startDate);
-        const end = new Date(m.endDate);
-        return today >= start && today <= end;
-    });
-
-    if (autoIndex !== -1) {
-        currentIndex = autoIndex;
-        showMilestone(currentIndex);
-    }
-
-    setupEventListeners();
-};
-
 const updateCountdown = () => {
     const deadline = new Date(PROJECT_DEADLINE);
     const today = new Date();
@@ -239,7 +216,101 @@ const downloadReport = () => {
     document.body.removeChild(link);
 };
 
+// GitHub Sync State
+const ghConfig = {
+    username: localStorage.getItem('gh_username') || '',
+    token: localStorage.getItem('gh_token') || '',
+    repo: 'jobagri_tracker',
+    path: 'shared_data.json'
+};
+
+const loadSharedData = async () => {
+    if (!ghConfig.username || !ghConfig.token) return;
+
+    try {
+        const response = await fetch(`https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${ghConfig.path}`, {
+            headers: { 'Authorization': `token ${ghConfig.token}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const content = JSON.parse(atob(data.content));
+
+            // Merge shared data into current MILESTONES
+            content.forEach(sharedM => {
+                const localM = MILESTONES.find(m => m.id === sharedM.id);
+                if (localM) {
+                    localM.status = sharedM.status;
+                    localM.notes = sharedM.notes;
+                    if (sharedM.subSteps) {
+                        sharedM.subSteps.forEach(sharedS => {
+                            const localS = localM.subSteps.find(s => s.id === sharedS.id);
+                            if (localS) localS.completed = sharedS.completed;
+                        });
+                    }
+                }
+            });
+            showMilestone(currentIndex);
+        }
+    } catch (e) {
+        console.warn("Shared data not found or inaccessible:", e);
+    }
+};
+
+const pushToGitHub = async () => {
+    if (!ghConfig.username || !ghConfig.token) {
+        document.getElementById('sync-modal').classList.remove('hidden');
+        return;
+    }
+
+    const syncBtn = document.getElementById('sync-milestone-btn');
+    const syncText = document.getElementById('sync-text');
+    syncBtn.disabled = true;
+    syncText.innerText = "⏳ Syncing...";
+
+    try {
+        // 1. Get current file data (to get SHA)
+        const getRes = await fetch(`https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${ghConfig.path}`, {
+            headers: { 'Authorization': `token ${ghConfig.token}` }
+        });
+
+        let sha = null;
+        if (getRes.ok) {
+            const fileData = await getRes.json();
+            sha = fileData.sha;
+        }
+
+        // 2. Push updated data
+        const body = {
+            message: `Update evaluation notes: ${MILESTONES[currentIndex].title}`,
+            content: btoa(JSON.stringify(MILESTONES, null, 2)),
+            sha: sha
+        };
+
+        const putRes = await fetch(`https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${ghConfig.path}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${ghConfig.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (putRes.ok) {
+            syncText.innerText = "✅ Synced Successfully";
+            setTimeout(() => { syncText.innerText = "Push Updates to GitHub"; syncBtn.disabled = false; }, 3000);
+        } else {
+            throw new Error("Failed to push");
+        }
+    } catch (e) {
+        alert("Sync failed. Please check your token and repo permissions.");
+        syncText.innerText = "❌ Sync Failed";
+        syncBtn.disabled = false;
+    }
+};
+
 const setupEventListeners = () => {
+    // Navigation
     document.getElementById('prev-btn').onclick = () => {
         if (currentIndex > 0) {
             currentIndex--;
@@ -254,10 +325,62 @@ const setupEventListeners = () => {
         }
     };
 
+    // Export
     const exportBtn = document.getElementById('export-btn');
-    if (exportBtn) {
-        exportBtn.onclick = downloadReport;
+    if (exportBtn) exportBtn.onclick = downloadReport;
+
+    // Sync Actions
+    document.getElementById('sync-milestone-btn').onclick = pushToGitHub;
+
+    // Modal Management
+    const syncModal = document.getElementById('sync-modal');
+    document.getElementById('sync-settings-btn').onclick = () => syncModal.classList.remove('hidden');
+    document.getElementById('close-sync-btn').onclick = () => syncModal.classList.add('hidden');
+
+    document.getElementById('save-sync-btn').onclick = () => {
+        const user = document.getElementById('gh-username').value.trim();
+        const token = document.getElementById('gh-token').value.trim();
+
+        if (user && token) {
+            localStorage.setItem('gh_username', user);
+            localStorage.setItem('gh_token', token);
+            ghConfig.username = user;
+            ghConfig.token = token;
+            syncModal.classList.add('hidden');
+            loadSharedData(); // Try initial fetch
+        } else {
+            alert("Please provide both username and token.");
+        }
+    };
+
+    // Fill modal if values exist
+    document.getElementById('gh-username').value = ghConfig.username;
+    document.getElementById('gh-token').value = ghConfig.token;
+};
+
+const init = () => {
+    updateCountdown();
+    renderTimelineDots();
+    renderGantt();
+    showMilestone(currentIndex);
+    updateProgress();
+    setupEventListeners();
+
+    // Auto-detect current milestone based on today's date if first time
+    const today = new Date();
+    const autoIndex = MILESTONES.findIndex(m => {
+        const start = new Date(m.startDate);
+        const end = new Date(m.endDate);
+        return today >= start && today <= end;
+    });
+
+    if (autoIndex !== -1) {
+        currentIndex = autoIndex;
+        showMilestone(currentIndex);
     }
+
+    setInterval(updateCountdown, 60000); // Update countdown every minute
+    loadSharedData(); // Load shared state from GitHub
 };
 
 document.addEventListener('DOMContentLoaded', init);

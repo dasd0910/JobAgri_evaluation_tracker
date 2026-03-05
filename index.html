@@ -27,6 +27,9 @@
                     <h1>Evaluation Timeline</h1>
                 </div>
                 <div class="header-actions">
+                    <button id="sync-settings-btn" class="secondary-btn" title="Cloud Sync Settings">
+                        <span>⚙️ Sync Settings</span>
+                    </button>
                     <button id="export-btn" class="export-btn">
                         <span>⬇ Export Report</span>
                     </button>
@@ -36,6 +39,33 @@
                         <span class="footer">30 June 2026</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Sync Settings Modal Overlay -->
+            <div id="sync-modal" class="sync-modal hidden">
+                <div class="modal-content">
+                    <h3>GitHub Sync Settings</h3>
+                    <p class="modal-hint">To save updates globally, provide your GitHub details. Settings are saved only
+                        in your browser.</p>
+
+                    <div class="input-group">
+                        <label for="gh-username">GitHub Username</label>
+                        <input type="text" id="gh-username" placeholder="e.g. dibyaudhdas">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="gh-token">Personal Access Token (Classic)</label>
+                        <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx">
+                        <span class="help-link"><a href="https://github.com/settings/tokens" target="_blank">Generate
+                                token with 'repo' scope</a></span>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button id="close-sync-btn" class="nav-btn">Cancel</button>
+                        <button id="save-sync-btn" class="primary-btn">Save Settings</button>
+                    </div>
+                </div>
+            </div>
             </div>
 
             <div class="overall-progress">
@@ -113,6 +143,9 @@
 
                 <div class="card-actions">
                     <button id="prev-btn" class="nav-btn">← Previous</button>
+                    <button id="sync-milestone-btn" class="primary-btn sync-action-btn">
+                        <span id="sync-text">Push Updates to GitHub</span>
+                    </button>
                     <button id="next-btn" class="nav-btn">Next →</button>
                 </div>
             </div>
