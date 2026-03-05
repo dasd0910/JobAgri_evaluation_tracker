@@ -641,6 +641,30 @@ body {
     background: rgba(255, 255, 255, 0.05);
 }
 
+.status-console {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.4;
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.status-console.success {
+    border-color: #10b981;
+    color: #34d399;
+}
+
+.status-console.error {
+    border-color: #ef4444;
+    color: #f87171;
+}
+
 .app-footer {
     text-align: center;
     color: var(--text-muted);

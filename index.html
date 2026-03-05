@@ -54,15 +54,24 @@
                     </div>
 
                     <div class="input-group">
+                        <label for="gh-repo">Repository Name</label>
+                        <input type="text" id="gh-repo" placeholder="e.g. Jobagri_evaluation_tracker">
+                    </div>
+
+                    <div class="input-group">
                         <label for="gh-token">Personal Access Token (Classic)</label>
                         <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx">
                         <span class="help-link"><a href="https://github.com/settings/tokens" target="_blank">Generate
                                 token with 'repo' scope</a></span>
                     </div>
 
+                    <div id="sync-status-console" class="status-console">
+                        Status: Waiting for configuration...
+                    </div>
+
                     <div class="modal-footer">
                         <button id="close-sync-btn" class="nav-btn">Cancel</button>
-                        <button id="save-sync-btn" class="primary-btn">Save Settings</button>
+                        <button id="save-sync-btn" class="primary-btn">Save & Test Connection</button>
                     </div>
                 </div>
             </div>
@@ -102,7 +111,13 @@
                         <span class="step-num" id="current-step-num">Step 1</span>
                         <h2 id="current-title">---</h2>
                     </div>
-                    <div class="status-pill" id="current-status">PENDING</div>
+                    <div class="current-status-container">
+                        <select id="current-status-select" class="status-select">
+                            <option value="pending">PENDING</option>
+                            <option value="active">ACTIVE</option>
+                            <option value="completed">COMPLETED</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="card-body">
