@@ -4,6 +4,13 @@
 
 let currentIndex = 0;
 
+const syncUI = () => {
+    updateCountdown();
+    renderTimelineDots();
+    renderGantt();
+    updateProgress();
+};
+
 const updateCountdown = () => {
     const deadline = new Date(PROJECT_DEADLINE);
     const today = new Date();
@@ -125,9 +132,9 @@ const showMilestone = (index) => {
     document.getElementById('current-owner').textContent = m.owner;
     document.getElementById('current-dates').textContent = `${formatDate(m.startDate)} - ${formatDate(m.endDate)}`;
 
-    const statusEl = document.getElementById('current-status');
-    statusEl.textContent = m.status.toUpperCase();
-    statusEl.className = 'status-pill ' + 'status-' + m.status;
+    const statusSelect = document.getElementById('current-status-select');
+    statusSelect.value = m.status;
+    statusSelect.className = 'status-select ' + m.status;
 
     // Notes
     const notesBox = document.getElementById('current-notes');
@@ -228,15 +235,17 @@ const loadSharedData = async () => {
     if (!ghConfig.username || !ghConfig.token) return;
 
     try {
-        const response = await fetch(`https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${ghConfig.path}`, {
+        const response = await fetch(`https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${ghConfig.path}?t=${new Date().getTime()}`, {
             headers: { 'Authorization': `token ${ghConfig.token}` }
         });
 
         if (response.ok) {
             const data = await response.json();
-            const content = JSON.parse(atob(data.content));
+            // Proper base64 decoding for UTF-8
+            const contentString = decodeURIComponent(escape(atob(data.content)));
+            const content = JSON.parse(contentString);
 
-            // Merge shared data into current MILESTONES
+            // Deep merge shared data into current MILESTONES
             content.forEach(sharedM => {
                 const localM = MILESTONES.find(m => m.id === sharedM.id);
                 if (localM) {
@@ -251,6 +260,7 @@ const loadSharedData = async () => {
                 }
             });
             showMilestone(currentIndex);
+            syncUI();
         }
     } catch (e) {
         console.warn("Shared data not found or inaccessible:", e);
@@ -258,6 +268,10 @@ const loadSharedData = async () => {
 };
 
 const pushToGitHub = async () => {
+    // Force capture of current notes from UI before sync
+    const notesBox = document.getElementById('current-notes');
+    if (notesBox) MILESTONES[currentIndex].notes = notesBox.textContent;
+
     if (!ghConfig.username || !ghConfig.token) {
         document.getElementById('sync-modal').classList.remove('hidden');
         return;
@@ -269,7 +283,6 @@ const pushToGitHub = async () => {
     syncText.innerText = "⏳ Syncing...";
 
     try {
-        // 1. Get current file data (to get SHA)
         const getRes = await fetch(`https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${ghConfig.path}`, {
             headers: { 'Authorization': `token ${ghConfig.token}` }
         });
@@ -280,10 +293,13 @@ const pushToGitHub = async () => {
             sha = fileData.sha;
         }
 
-        // 2. Push updated data
+        // Proper base64 encoding for UTF-8 support
+        const jsonContent = JSON.stringify(MILESTONES, null, 2);
+        const encodedContent = btoa(unescape(encodeURIComponent(jsonContent)));
+
         const body = {
-            message: `Update evaluation notes: ${MILESTONES[currentIndex].title}`,
-            content: btoa(JSON.stringify(MILESTONES, null, 2)),
+            message: `Update evaluation sync: ${MILESTONES[currentIndex].title}`,
+            content: encodedContent,
             sha: sha
         };
 
@@ -297,13 +313,14 @@ const pushToGitHub = async () => {
         });
 
         if (putRes.ok) {
-            syncText.innerText = "✅ Synced Successfully";
+            syncText.innerText = "✅ Successfully Synced";
+            syncUI();
             setTimeout(() => { syncText.innerText = "Push Updates to GitHub"; syncBtn.disabled = false; }, 3000);
         } else {
             throw new Error("Failed to push");
         }
     } catch (e) {
-        alert("Sync failed. Please check your token and repo permissions.");
+        alert("Sync failed. Check token and repo permissions.");
         syncText.innerText = "❌ Sync Failed";
         syncBtn.disabled = false;
     }
@@ -323,6 +340,14 @@ const setupEventListeners = () => {
             currentIndex++;
             showMilestone(currentIndex);
         }
+    };
+
+    // Status Toggle
+    const statusSelect = document.getElementById('current-status-select');
+    statusSelect.onchange = (e) => {
+        MILESTONES[currentIndex].status = e.target.value;
+        statusSelect.className = 'status-select ' + e.target.value;
+        syncUI();
     };
 
     // Export
