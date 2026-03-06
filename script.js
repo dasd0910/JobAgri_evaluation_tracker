@@ -1,6 +1,6 @@
 /**
  * JobAgri Evaluation Tracker - Core Logic
- * Version: 2.1 (Robust Shared Sync)
+ * Version: 3.0 (Sync Engine: Robust UTF-8 & Verbose Diagnostics)
  */
 
 let currentIndex = 0;
@@ -249,52 +249,88 @@ const downloadReport = () => {
     link.click();
 };
 
-// --- ELEGANT SYNC ENGINE ---
+// --- SYNC ENGINE 3.0: ROBUST UTF-8 & VERBOSE DIAGNOSTICS ---
+
+/**
+ * Robust Base64 Encoding for UTF-8 (Safari/Mac Compatible)
+ */
+const toBase64 = (str) => {
+    const bytes = new TextEncoder().encode(str);
+    const binString = Array.from(bytes, byte => String.fromCharCode(byte)).join("");
+    return btoa(binString);
+};
+
+const fromBase64 = (base64) => {
+    const binString = atob(base64);
+    const bytes = Uint8Array.from(binString, char => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+};
 
 const logSync = (msg, isError = false) => {
     const consoleEl = document.getElementById('sync-status-console');
-    if (!consoleEl) return;
-    consoleEl.textContent = `> ${msg}`;
+    if (!consoleEl) {
+        console.log(`Sync Log: ${msg}`);
+        return;
+    }
+    consoleEl.innerHTML = `> ${msg}`; // Use innerHTML to allow line breaks or specific styling
     consoleEl.className = `status-console ${isError ? 'error' : 'success'}`;
 };
 
-const loadSharedData = async () => {
-    if (!ghConfig.username || !ghConfig.token || !ghConfig.repo) {
-        console.log("Sync not configured.");
-        return;
+const githubReq = async (endpoint, method = 'GET', body = null) => {
+    const url = `https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${endpoint}`;
+    const headers = {
+        'Authorization': `token ${ghConfig.token}`,
+        'Accept': 'application/vnd.github.v3+json'
+    };
+
+    const options = { method, headers };
+    if (body) options.body = JSON.stringify(body);
+
+    const res = await fetch(url + (method === 'GET' ? `?t=${Date.now()}` : ''), options);
+
+    if (!res.ok) {
+        const err = await res.json();
+        throw { status: res.status, message: err.message };
     }
 
+    return await res.json();
+};
+
+const loadSharedData = async () => {
+    if (!ghConfig.username || !ghConfig.token || !ghConfig.repo) return;
+
     try {
-        const url = `https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${ghConfig.path}?t=${new Date().getTime()}`;
-        const res = await fetch(url, { headers: { 'Authorization': `token ${ghConfig.token}` } });
+        logSync("Connecting...");
+        const data = await githubReq(ghConfig.path);
+        const content = JSON.parse(fromBase64(data.content));
 
-        if (res.ok) {
-            const data = await res.json();
-            const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-
-            content.forEach(sharedM => {
-                const localM = MILESTONES.find(m => m.id === sharedM.id);
-                if (localM) {
-                    localM.status = sharedM.status;
-                    localM.notes = sharedM.notes;
-                    if (sharedM.subSteps) {
-                        sharedM.subSteps.forEach(sharedS => {
-                            const localS = localM.subSteps.find(s => s.id === sharedS.id);
-                            if (localS) localS.completed = sharedS.completed;
-                        });
-                    }
+        content.forEach(sharedM => {
+            const localM = MILESTONES.find(m => m.id === sharedM.id);
+            if (localM) {
+                localM.status = sharedM.status;
+                localM.notes = sharedM.notes;
+                if (sharedM.subSteps) {
+                    sharedM.subSteps.forEach(sharedS => {
+                        const localS = localM.subSteps.find(s => s.id === sharedS.id);
+                        if (localS) localS.completed = sharedS.completed;
+                    });
                 }
-            });
-            showMilestone(currentIndex);
-            syncUI();
-            logSync("Cloud data loaded successfully.");
-        }
+            }
+        });
+        showMilestone(currentIndex);
+        syncUI();
+        logSync(`Success: Shared updates loaded from ${ghConfig.repo}`);
     } catch (e) {
-        logSync("Could not fetch shared data.", true);
+        if (e.status === 404) {
+            logSync("Ready: No shared file found yet. Use 'Push' to create it.");
+        } else {
+            logSync(`Error ${e.status || ''}: ${e.message || "Connection failed"}`, true);
+        }
     }
 };
 
 const pushToGitHub = async () => {
+    // Sync current UI state to MILESTONES array
     const notesBox = document.getElementById('current-notes');
     if (notesBox) MILESTONES[currentIndex].notes = notesBox.textContent;
 
@@ -306,46 +342,37 @@ const pushToGitHub = async () => {
     const btn = document.getElementById('sync-milestone-btn');
     const txt = document.getElementById('sync-text');
     btn.disabled = true;
-    txt.innerText = "⏳ Pushing...";
+    txt.innerText = "⏳ Saving...";
 
     try {
-        logSync("Contacting GitHub...");
-        const url = `https://api.github.com/repos/${ghConfig.username}/${ghConfig.repo}/contents/${ghConfig.path}`;
-        const getRes = await fetch(url, { headers: { 'Authorization': `token ${ghConfig.token}` } });
-
+        logSync("Fetching current SHA...");
         let sha = null;
-        if (getRes.ok) {
-            const fileData = await getRes.json();
+        try {
+            const fileData = await githubReq(ghConfig.path);
             sha = fileData.sha;
+        } catch (e) {
+            if (e.status !== 404) throw e;
+            logSync("Creating new shared file...");
         }
 
         const json = JSON.stringify(MILESTONES, null, 2);
-        const content = btoa(unescape(encodeURIComponent(json)));
-
         const body = {
             message: `Evaluation Update: ${MILESTONES[currentIndex].title}`,
-            content: content,
+            content: toBase64(json),
             sha: sha
         };
 
-        const putRes = await fetch(url, {
-            method: 'PUT',
-            headers: { 'Authorization': `token ${ghConfig.token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
+        logSync("Uploading payload...");
+        await githubReq(ghConfig.path, 'PUT', body);
 
-        if (putRes.ok) {
-            txt.innerText = "✅ Successfully Saved";
-            syncUI();
-            setTimeout(() => { txt.innerText = "Push Updates to GitHub"; btn.disabled = false; }, 3000);
-            logSync("All changes persisted globally.");
-        } else {
-            throw new Error();
-        }
+        txt.innerText = "✅ Saved Successfully";
+        syncUI();
+        logSync("Success: All updates are now global.");
+        setTimeout(() => { txt.innerText = "Push Updates to GitHub"; btn.disabled = false; }, 3000);
     } catch (e) {
-        txt.innerText = "❌ Push Failed";
+        txt.innerText = "❌ Save Failed";
         btn.disabled = false;
-        logSync("Push failed. Check Repository Name and Token permissions.", true);
+        logSync(`Sync Error: ${e.message || "Network Error"}`, true);
     }
 };
 
@@ -373,8 +400,14 @@ const setupEventListeners = () => {
 
     document.getElementById('save-sync-btn').onclick = async () => {
         const user = document.getElementById('gh-username').value.trim();
-        const repo = document.getElementById('gh-repo').value.trim();
+        let repo = document.getElementById('gh-repo').value.trim();
         const token = document.getElementById('gh-token').value.trim();
+
+        // Repo Name Sanitization: Extract from full URL if pasted
+        if (repo.includes("github.com/")) {
+            repo = repo.split("github.com/")[1].split("/")[1].replace(".git", "");
+            document.getElementById('gh-repo').value = repo;
+        }
 
         if (user && repo && token) {
             localStorage.setItem('gh_username', user);
@@ -384,13 +417,12 @@ const setupEventListeners = () => {
             ghConfig.repo = repo;
             ghConfig.token = token;
 
-            logSync("Testing connection...");
             await loadSharedData();
-            if (document.getElementById('sync-status-console').classList.contains('success')) {
-                setTimeout(() => syncModal.classList.add('hidden'), 1500);
+            if (!document.getElementById('sync-status-console').classList.contains('error')) {
+                setTimeout(() => syncModal.classList.add('hidden'), 2000);
             }
         } else {
-            logSync("Missing required fields.", true);
+            logSync("Please fill all fields.", true);
         }
     };
 
